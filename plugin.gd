@@ -58,7 +58,39 @@ func _process(delta: float) -> void:
 			received += chunk
 		
 		print_verbose("Data received.")
-		print(received)
+
+		var packages := JSON.parse_string(received)
+		for package in packages:
+			print("Installing %s (%s)" % [package["name"], package["type"]])
+			# TODO: Specify install location
+			if not DirAccess.dir_exists_absolute("res://" + package["folderNamingConvention"]):
+				DirAccess.make_dir_absolute("res://" + package["folderNamingConvention"])
+			var dir := "res://%s" % (package["folderNamingConvention"] as String)
+		
+			var components := {}
+			for component in package["components"]:
+				DirAccess.copy_absolute(component["path"], dir + "/" + component["nameOverride"])
+				components[component["type"]] = "%s/%s" % [dir, component["nameOverride"]]
+			get_editor_interface().get_resource_filesystem().scan()
+			
+			var material := StandardMaterial3D.new()
+
+			if "albedo" in components:
+				material.albedo_texture = load(components["albedo"])
+			if "roughness" in components:
+				material.roughness_texture = load(components["roughness"])
+			if "normal" in components:
+				material.normal_enabled = true
+				material.normal_texture = load(components["normal"])
+			if "ao" in components:
+				material.ao_enabled = true
+				material.ao_texture = load(components["ao"])
+			if "displacement" in components:
+				material.heightmap_enabled = true
+				material.heightmap_deep_parallax = true
+				material.heightmap_texture = load(components["displacement"])
+
+			ResourceSaver.save(material, "%s/%s.material" % [dir, package["folderNamingConvention"]])
 
 
 func _get_delta_depth(chunk: String) -> int:
