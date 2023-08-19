@@ -75,4 +75,3 @@ func _stop_server() -> void:
 
 func _get_settings(name: String) -> Variant:
 	return ProjectSettings["application/quixel_bridge/" + name]
-
