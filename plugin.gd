@@ -4,16 +4,12 @@ extends EditorPlugin
 
 const SETTINGS = {
 	"application/quixel_bridge/socket_port": 24981, # Default export port
-	"application/quixel_bridge/tcp_wait_time": 100, # 100ms
-	"application/quixel_bridge/max_tcp_wait_loops": 10, # 10 loops
+	"application/quixel_bridge/tcp_wait_time_ms": 100,
+	"application/quixel_bridge/max_tcp_wait_loops": 10,
 }
 
-var _port: int
 var _server: TCPServer
 var _stream_peer: StreamPeer
-
-var _wait_time: int
-var _max_wait_loops: int
 
 
 func _enter_tree() -> void:
@@ -23,10 +19,6 @@ func _enter_tree() -> void:
 
 		ProjectSettings.set_initial_value(k, SETTINGS[k])
 		ProjectSettings.set_as_basic(k, true)
-	
-	_port = ProjectSettings["application/quixel_bridge/socket_port"]
-	_wait_time = ProjectSettings["application/quixel_bridge/tcp_wait_time"]
-	_max_wait_loops = ProjectSettings["application/quixel_bridge/max_tcp_wait_loops"]
 
 	_start_server()
 
@@ -49,7 +41,7 @@ func _disable_plugin() -> void:
 func _start_server() -> void:
 	print("Setting up socket server...")
 	_server = TCPServer.new()
-	_server.listen(_port, "127.0.0.1") # Only allow local connections
+	_server.listen(_get_settings("socket_port"), "127.0.0.1") # Only allow local connections
 
 
 func _stop_server() -> void:
@@ -63,17 +55,21 @@ func _process(delta: float) -> void:
 		_stream_peer = _server.take_connection()
 
 		var available := 0
-		var timeout := _max_wait_loops
+		var timeout := _get_settings("max_tcp_wait_loops")
 		while timeout > 0:
 			if _stream_peer.get_available_bytes() > available:
 				available = _stream_peer.get_available_bytes()
 				timeout = 10
 			else:
 				timeout -= 1
-				OS.delay_msec(_wait_time)
+				OS.delay_msec(_get_settings("tcp_wait_time_ms"))
 		
 		print("Done waiting for data.")
 		var text := _stream_peer.get_utf8_string(available)
 
 		print(text)
+
+
+func _get_settings(name: String) -> Variant:
+	return ProjectSettings["application/quixel_bridge/" + name]
 
