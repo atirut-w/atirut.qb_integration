@@ -4,8 +4,6 @@ extends EditorPlugin
 
 const SETTINGS = {
 	"application/quixel_bridge/socket_port": 24981, # Default export port
-	"application/quixel_bridge/tcp_wait_time_ms": 50,
-	"application/quixel_bridge/max_tcp_wait_loops": 10,
 }
 
 var _server: TCPServer
@@ -44,20 +42,34 @@ func _process(delta: float) -> void:
 		_stream_peer = _server.take_connection()
 
 		print_verbose("Waiting for data...")
-		var available := 0
-		var timeout := _get_settings("max_tcp_wait_loops")
-		while timeout > 0:
-			if _stream_peer.get_available_bytes() > available:
-				available = _stream_peer.get_available_bytes()
-				timeout = 10
-			else:
-				timeout -= 1
-				OS.delay_msec(_get_settings("tcp_wait_time_ms"))
-		print_verbose("Received " + str(available) + " bytes.")
-		
-		var text := _stream_peer.get_utf8_string(available)
+		var received := ""
+		var depth := 0
 
-		print(text)
+		while _stream_peer.get_available_bytes() == 0:
+			pass
+		
+		var chunk := _stream_peer.get_utf8_string(_stream_peer.get_available_bytes())
+		depth += _get_delta_depth(chunk)
+		received += chunk
+
+		while depth != 0:
+			chunk = _stream_peer.get_utf8_string(_stream_peer.get_available_bytes())
+			depth += _get_delta_depth(chunk)
+			received += chunk
+		
+		print_verbose("Data received.")
+		print(received)
+
+
+func _get_delta_depth(chunk: String) -> int:
+	var depth := 0
+	for char in chunk:
+		if char == "[":
+			depth += 1
+		elif char == "]":
+			depth -= 1
+	
+	return depth
 
 
 func _start_server() -> void:
