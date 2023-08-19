@@ -38,22 +38,12 @@ func _disable_plugin() -> void:
 	push_warning(("BUG: Quixel Bridge settings will not disappear until the project settings window is reopened."))
 
 
-func _start_server() -> void:
-	print("Setting up socket server...")
-	_server = TCPServer.new()
-	_server.listen(_get_settings("socket_port"), "127.0.0.1") # Only allow local connections
-
-
-func _stop_server() -> void:
-	print("Stopping socket server...")
-	_server.stop()
-
-
 func _process(delta: float) -> void:
 	if _server.is_connection_available():
-		print("Received connection from Quixel Bridge... probably.")
+		print_verbose("Received connection from Quixel Bridge.")
 		_stream_peer = _server.take_connection()
 
+		print_verbose("Waiting for data...")
 		var available := 0
 		var timeout := _get_settings("max_tcp_wait_loops")
 		while timeout > 0:
@@ -63,11 +53,24 @@ func _process(delta: float) -> void:
 			else:
 				timeout -= 1
 				OS.delay_msec(_get_settings("tcp_wait_time_ms"))
+		print_verbose("Received " + str(available) + " bytes.")
 		
-		print("Done waiting for data.")
 		var text := _stream_peer.get_utf8_string(available)
 
 		print(text)
+
+
+func _start_server() -> void:
+	print_verbose("Starting socket server...")
+	_server = TCPServer.new()
+	_server.listen(_get_settings("socket_port"), "127.0.0.1") # Only allow local connections
+	print_verbose("Socket server started on port %d." % _get_settings("socket_port"))
+
+
+func _stop_server() -> void:
+	print_verbose("Stopping socket server...")
+	_server.stop()
+	print_verbose("Socket server stopped.")
 
 
 func _get_settings(name: String) -> Variant:
