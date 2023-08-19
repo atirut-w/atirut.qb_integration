@@ -4,7 +4,7 @@ extends EditorPlugin
 
 const SETTINGS = {
 	"application/quixel_bridge/socket_port": 24981, # Default export port
-	"application/quixel_bridge/tcp_wait_time_ms": 100,
+	"application/quixel_bridge/tcp_wait_time_ms": 50,
 	"application/quixel_bridge/max_tcp_wait_loops": 10,
 }
 
